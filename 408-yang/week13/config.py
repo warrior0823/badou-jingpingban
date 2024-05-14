@@ -1,0 +1,21 @@
+Config={
+    "model_path": "output/ner",
+    "train_data_path": "data/ner_data/train",
+    "valid_data_path": "data/ner_data/test",
+    "schema_path": "data/ner_data/schema.json",
+    "vocab_path":"data/chars.txt",
+    "model_type":"bert",
+    "max_length": 20,
+    "hidden_size": 128,
+    "kernel_size": 3,
+    "num_layers": 2,
+    "epoch": 10,
+    "batch_size": 64,
+    "tuning_tactics":"lora_tuning",
+    # "tuning_tactics":"finetuing",
+    "pooling_style":"max",
+    "optimizer": "adam",
+    "learning_rate": 1e-3,
+    "pretrain_model_path":r"/root/pretrain/bert_base_chinese",
+    "seed": 987
+}
