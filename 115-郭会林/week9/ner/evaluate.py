@@ -4,6 +4,7 @@ import re
 import numpy as np
 from collections import defaultdict
 from loader import load_data
+from transformers import BertTokenizer
 
 """
 模型效果测试
@@ -15,7 +16,7 @@ class Evaluator:
         self.model = model
         self.logger = logger
         self.valid_data = load_data(config["valid_data_path"], config, shuffle=False)
-        self.tokenizer = self.valid_data.tokenizer
+        self.tokenizer = BertTokenizer.from_pretrained(config["bert_path"])
 
 
     def eval(self, epoch):

@@ -13,7 +13,7 @@ from transformers import BertModel
 class TorchModel(nn.Module):
     def __init__(self, config):
         super(TorchModel, self).__init__()
-        hidden_size = config["hidden_size"]
+        hidden_size = 768
         vocab_size = config["vocab_size"] + 1
         max_length = config["max_length"]
         class_num = config["class_num"]
@@ -21,7 +21,7 @@ class TorchModel(nn.Module):
         # self.embedding = nn.Embedding(vocab_size, hidden_size, padding_idx=0)
         # self.layer = nn.LSTM(hidden_size, hidden_size, batch_first=True, bidirectional=True, num_layers=num_layers)
         self.bert = BertModel.from_pretrained(r"D:\LearnNLP\bert-base-chinese", return_dict=False)
-        self.classify = nn.Linear(hidden_size * 2, class_num)
+        self.classify = nn.Linear(hidden_size, class_num)
         self.crf_layer = CRF(class_num, batch_first=True)
         self.use_crf = config["use_crf"]
         self.loss = torch.nn.CrossEntropyLoss(ignore_index=-1)  #loss采用交叉熵损失
@@ -30,9 +30,8 @@ class TorchModel(nn.Module):
     def forward(self, x, target=None):
         # x = self.embedding(x)  #input shape:(batch_size, sen_len)
         # x, _ = self.layer(x)      #input shape:(batch_size, sen_len, input_dim)
-        _, x = self.bert(x)
+        x, _ = self.bert(x)
         predict = self.classify(x) #ouput:(batch_size, sen_len, num_tags) -> (batch_size * sen_len, num_tags)
-
         if target is not None:
             if self.use_crf:
                 mask = target.gt(-1)

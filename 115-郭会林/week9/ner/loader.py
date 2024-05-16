@@ -8,7 +8,7 @@ import random
 import jieba
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
-from transformers import AutoTokenizer, BertTokenizer
+from transformers import BertTokenizer
 
 """
 数据加载
@@ -24,9 +24,7 @@ class DataGenerator:
         self.max_length = config["max_length"]
         self.sentences = []
         self.schema = self.load_schema(config["schema_path"])
-        self.tokenizer = AutoTokenizer.from_pretrained(config["bert_path"],
-                                                       #use_fast=True,
-                                                       add_special_tokens=True)
+        self.tokenizer = BertTokenizer.from_pretrained(config["bert_path"])
         self.load()
 
     def load(self):
@@ -34,22 +32,24 @@ class DataGenerator:
         with open(self.path, encoding="utf8") as f:
             segments = f.read().split("\n\n")
             for segment in segments:
-                sentenece = []
-                labels = []
+                # sentenece = []
+                sentenece = ''
+                labels = [8]
                 for line in segment.split("\n"):
                     if line.strip() == "":
                         continue
                     char, label = line.split()
-                    sentenece.append(char)
+                    # 将char拼接到sentenece中,sentenece是一个字符串
+                    sentenece += char
                     labels.append(self.schema[label])
                 self.sentences.append("".join(sentenece))
-                # input_ids = self.encode_sentence(sentenece)
-                input_ids = self.tokenizer.encode(sentenece)
+                input_ids = self.tokenizer.encode(sentenece, max_length=self.max_length, padding='max_length', truncation=True)
                 labels = self.padding(labels, -1)
                 self.data.append([torch.LongTensor(input_ids), torch.LongTensor(labels)])
         return
 
     def encode_sentence(self, text, padding=True):
+        print(text)
         input_id = []
         if self.config["vocab_path"] == "words.txt":
             for word in jieba.cut(text):
@@ -96,5 +96,5 @@ def load_data(data_path, config, shuffle=True):
 
 if __name__ == "__main__":
     from config import Config
-    dg = DataGenerator("../ner_data/train.txt", Config)
+    dg = DataGenerator("../ner_data/train", Config)
 
