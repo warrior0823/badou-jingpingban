@@ -11,7 +11,7 @@
 ```
 - 改用官网版本(Linux/Mac Executable) 
 Link:https://neo4j.com/deployment-center/ 
-![alt text](<Screenshot 2024-05-16 at 08.28.04.png>)
+21-郑奕斐/Week_14_HomeWork/Screenshot 2024-05-16 at 08.28.04.png
 - 解压完成文件
 - ![alt text](<Screenshot 2024-05-16 at 08.33.15.png>)
 
