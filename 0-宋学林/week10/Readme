@@ -1,0 +1,1 @@
+用bert实现自回归语言模型的训练，主要通过加入一个attention mask实现。

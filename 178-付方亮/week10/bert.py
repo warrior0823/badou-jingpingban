@@ -1,0 +1,148 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+import random
+import os
+from transformers import BertModel, BertTokenizer
+
+# 定义基于PyTorch的LSTM语言模型
+class LanguageModel(nn.Module):
+    def __init__(self, input_dim):
+        super(LanguageModel, self).__init__()
+        # 假设input_dim是词汇表大小，这里我们使用BERT的输出维度作为输入维度
+        self.bert = BertModel.from_pretrained('bert-base-chinese', return_dict=False)
+        self.classifier = nn.Linear(self.bert.config.hidden_size * 3, input_dim)  # 修改这里的维度
+        self.dropout = nn.Dropout(0.1)
+
+    def forward(self, x, y=None):
+        x, _ = self.bert(x)
+        x = x.last_hidden_state  # 使用BERT的最后一层隐藏状态
+        y_pred = self.classifier(x)  # 预测下一个词
+        if y is not None:
+            loss = nn.functional.cross_entropy(y_pred.view(-1, y_pred.shape[-1]), y.view(-1))
+            return loss
+        else:
+            return y_pred
+# 加载字表
+def build_vocab(vocab_path):
+    vocab = {"<pad>": 0}
+    with open(vocab_path, encoding="utf8") as f:
+        for index, line in enumerate(f):
+            char = line[:-1]  # 去掉结尾换行符
+            vocab[char] = index + 1  # 留出0位给pad token
+    return vocab
+
+
+# 加载语料
+def load_corpus(path):
+    corpus = ""
+    with open(path, encoding="gbk") as f:
+        for line in f:
+            corpus += line.strip()
+    return corpus
+
+
+def build_sample(window_size, corpus):
+    start = random.randint(0, len(corpus) - 1 - window_size)
+    end = start + window_size
+    window = corpus[start:end]
+    target = corpus[start + 1:end + 1]  # 输入输出错开一位
+    # print(window, target)
+    x = tokenizer.encode(window, max_length=100, padding='max_length', truncation=True)
+    y = tokenizer.encode(target, max_length=100, padding='max_length', truncation=True)
+    return x, y
+
+
+def build_dataset(sample_length, window_size, corpus):
+    dataset_x = []
+    dataset_y = []
+    for i in range(sample_length):
+        x, y = build_sample(window_size, corpus)
+        dataset_x.append(x)
+        dataset_y.append(y)
+    return torch.LongTensor(dataset_x), torch.LongTensor(dataset_y)
+
+
+# 文本生成测试代码
+def generate_sentence(openings, model, window_size):
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(tokenizer.encode(openings[-window_size:])).unsqueeze(0)  # Batch size 1
+        for _ in range(50):
+            if torch.cuda.is_available():
+                x = x.cuda()
+            y = model(x)[0][-1]
+            next_token_id = torch.argmax(y, dim=-1).unsqueeze(-1)
+            x = torch.cat([x, next_token_id.unsqueeze(1)], dim=-1)
+            if next_token_id == tokenizer.eos_token_id:
+                break
+        pre_text = tokenizer.decode(x[0])
+        # 去除特殊标记
+        special_token = [tokenizer.cls_token, tokenizer.sep_token, tokenizer.pad_token]
+        pre_text = " ".join(token for token in pre_text.split() if token not in special_token)
+    return pre_text
+
+
+# 计算文本ppl
+def calc_perplexity(sentence, model, vocab, window_size):
+    prob = 0
+    model.eval()
+    with torch.no_grad():
+        for i in range(1, len(sentence)):
+            start = max(0, i - window_size)
+            window = sentence[start:i]
+            x = [vocab.get(char, vocab["<UNK>"]) for char in window]
+            x = torch.LongTensor([x])
+            target = sentence[i]
+            target_index = vocab.get(target, vocab["<UNK>"])
+            if torch.cuda.is_available():
+                x = x.cuda()
+            pred_prob_distribute = model(x)[0][-1]
+            target_prob = pred_prob_distribute[target_index]
+            prob += math.log(target_prob, 10)
+    return 2 ** (prob * (-1 / len(sentence)))
+
+
+def train(corpus_path, save_weight=True):
+    epoch_num = 20  # 训练轮数
+    batch_size = 64  # 每次训练样本个数
+    train_sample = 50000  # 每轮训练总共训练的样本总数
+    char_dim = 256  # 每个字的维度
+    window_size = 13  # 样本文本长度
+    corpus = load_corpus(corpus_path)  # 加载语料
+    model = LanguageModel(char_dim)  # 建立模型
+    if torch.cuda.is_available():
+        model = model.cuda()
+    optim = torch.optim.Adam(model.parameters(), lr=1e-4)  # 建立优化器
+    print("文本词表模型加载完毕，开始训练")
+    for epoch in range(epoch_num):
+        model.train()
+        watch_loss = []
+        for batch in range(int(train_sample / batch_size)):
+            x, y = build_dataset(batch_size, window_size, corpus)  # 构建一组训练样本
+            if torch.cuda.is_available():
+                x, y = x.cuda(), y.cuda()
+            optim.zero_grad()  # 梯度归零
+            loss = model(x, y)  # 计算loss
+            loss.backward()  # 计算梯度
+            optim.step()  # 更新权重
+            watch_loss.append(loss.item())
+        print("=========\n第%d轮平均loss:%f" % (epoch + 1, np.mean(watch_loss)))
+        print(generate_sentence("让他在半年之前，就不能做出", model, window_size))
+        print(generate_sentence("李慕站在山路上，深深的呼吸", model, window_size))
+    if not save_weight:
+        return
+    else:
+        base_name = os.path.basename(corpus_path).replace("txt", "pth")
+        model_path = os.path.join("model", base_name)
+        torch.save(model.state_dict(), model_path)
+        return
+
+if __name__ == "__main__":
+    # 构建词汇表
+    vocab_path = "corpus/vocab.txt"  # 假设词汇表文件路径
+    build_vocab(vocab_path)  # 构建词汇表
+
+    # 训练模型
+    train(corpus_path="corpus.txt", save_weight=False)

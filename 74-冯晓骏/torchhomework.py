@@ -48,7 +48,9 @@ class TorchModel(nn.Module):
         # if y_pred[0][0] >= 1:
         #
         #     print('预测值：',y_pred)
-
+        print('y_pred size:', np.shape(y_pred))
+        print('y size:', np.shape(y))
+        input()
         if y is not None:
             # print('y_p-->',y_pred[0])
             # temp_y = torch.softmax(y_pred[0],-1)

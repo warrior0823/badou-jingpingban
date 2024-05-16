@@ -40,12 +40,14 @@ def build_dataset(total_sample_num):
 class TorchModel(nn.Module):
     def __init__(self, input_size):
         super(TorchModel, self).__init__()
-        self.linear = nn.Linear(input_size, 5)  # 线性层
+        self.linear1 = nn.Linear(input_size, 10)  # 线性层
+        self.linear2=nn.Linear(10,5)
         self.loss = nn.functional.cross_entropy  # loss函数采用交叉熵计算
 
     # 当输入真实标签，返回loss值；无真实标签，返回预测值
     def forward(self, x, y=None):
-        y_pred  = self.linear(x)  # (batch_size, input_size) -> (batch_size, 1)
+        x1  = self.linear1(x)  # (batch_size, input_size) -> (batch_size, 1)
+        y_pred=self.linear2(x1)
         if y is not None:
             return self.loss(y_pred, y)  # 预测值和真实值计算损失
         else:
@@ -55,10 +57,10 @@ class TorchModel(nn.Module):
 def main():
     # 配置参数
     epoch_num = 200  # 训练轮数
-    batch_size = 10  # 每次训练样本个数
+    batch_size = 20  # 每次训练样本个数
     train_sample = 5000  # 每轮训练总共训练的样本总数
     input_size = 5  # 输入向量维度
-    learning_rate = 0.0001  # 学习率
+    learning_rate = 0.001  # 学习率
     # 建立模型
     model = TorchModel(input_size)
     # 选择优化器
@@ -101,20 +103,11 @@ def evaluate(model):
     with torch.no_grad():
         y_pred = model(x)  # 模型预测
         for y_p, y_t in zip(y_pred, y):  # 与真实标签进行对比
-            if y_p[0]>y_p[1]:
-                y_true=0
-            elif y_p[0]>y_p[2]:
-                y_true=1
-            elif y_p[0]>y_p[3]:
-                y_true=2
-            elif y_p[0]>y_p[4]:
-                y_true=3
+            if torch.argmax(y_p) == int(y_t):
+                correct += 1
             else:
-                y_true=4
-            if y_true==y_t :
-                correct+=1
-            else:
-                wrong+=1       
+                wrong += 1
+  
 
     print("正确预测个数：%d, 正确率：%f" % (correct, correct / (correct + wrong)))
     return correct / (correct + wrong)
@@ -130,24 +123,15 @@ def predict(model_path, input_vec):
     with torch.no_grad():  # 不计算梯度
         result = model.forward(torch.FloatTensor(input_vec))  # 模型预测
     for vec, res in zip(input_vec, result):
-            if res[0]>res[1]:
-                y_true=1
-            elif res[0]>res[2]:
-                y_true=2
-            elif res[0]>res[3]:
-                y_true=3
-            elif res[0]>res[4]:
-                y_true=4
-            else:
-                y_true=5
-            print("输入：%s, 预测类别：%s, 概率值：%s" % (vec,y_true, res))  # 打印结果
+            
+            print("输入：%s, 预测类别：%s, 概率值：%s" % (vec,torch.argmax(res), res))  # 打印结果
 
 if __name__ == "__main__":
     main()
     test_vec = [[0.47889086, 0.15229675, 0.31082123, 0.03504317, 0.18920843],
-                [0.94963533, 0.5524256, 0.95758807, 0.95520434, 0.84890681],
-                [0.78797868, 0.67482528, 0.13625847, 0.34675372, 0.09871392],
-                [0.89349776, 0.59416669, 0.92579291, 0.41567412, 0.7358894]]
+                [0.94963533, 1.5524256, 0.95758807, 0.95520434, 0.84890681],
+                [0.78797868, 1.67482528, 2.13625847, 0.34675372, 0.09871392],
+                [0.89349776, 1.59416669, 1.92579291, 3.41567412, 0.7358894]]
     predict("model.pt", test_vec)
 
 
