@@ -28,7 +28,8 @@ class LanguageModel(nn.Module):
     def forward(self, x, y=None):
         # x = self.embedding(x)       #output shape:(batch_size, sen_len, input_dim)
         # x, _ = self.layer(x)        #output shape:(batch_size, sen_len, input_dim)
-        mask = torch.tril(torch.ones((x.shape[0], x.shape[1], x.shape[1]))).to(x.device)
+        # mask = torch.tril(torch.ones((x.shape[0], x.shape[1], x.shape[1]))).to(x.device)
+        mask = torch.tril(torch.ones((x.shape[0], x.shape[1], x.shape[1])))
         x, _ = self.bert(x, attention_mask = mask)
         y_pred = self.classify(x)   #output shape:(batch_size, vocab_size)
         if y is not None:
@@ -84,7 +85,7 @@ def build_model(vocab_size, char_dim):
     return model
 
 #文本生成测试代码
-def generate_sentence(openings, model, device, tokenizer, window_size):
+def generate_sentence(openings, model, tokenizer, window_size):
     # reverse_vocab = dict((y, x) for x, y in vocab.items())
     model.eval()
     with torch.no_grad():
@@ -94,7 +95,7 @@ def generate_sentence(openings, model, device, tokenizer, window_size):
             openings += pred_char
             x = tokenizer.encode(openings, add_special_tokens=False)
             x = torch.LongTensor([x])
-            x = x.to(device)
+            # x = x.to(device)
             # if torch.cuda.is_available():
             #     x = x.cuda()
             y = model(x)[0][-1]
@@ -122,32 +123,25 @@ def train(corpus_path, save_weight=True):
     window_size = 10       #样本文本长度
     vocab_size = 21128
     tokenizer = BertTokenizer.from_pretrained(r"/Users/huilin/workspace/LearnNLP/bert-base-chinese")
-    # m1芯片的mac 只能用mps
-    device = torch.device("cpu")
-    if torch.backends.mps.is_available():
-        print("mps is available")
-        device = torch.device("mps")
-    vocab = build_vocab("vocab.txt")       #建立字表
     corpus = load_corpus(corpus_path)     #加载语料
-    model = build_model(vocab_size, char_dim).to(device)    #建立模型
+    model = build_model(vocab_size, char_dim)   #建立模型
     # if torch.cuda.is_available():
     #     model = model.cuda()
-    optim = torch.optim.Adam(model.parameters(), lr=0.01)   #建立优化器
+    optim = torch.optim.Adam(model.parameters(), lr=0.0001)   #建立优化器
     print("文本词表模型加载完毕，开始训练")
     for epoch in range(epoch_num):
         model.train()
         watch_loss = []
         for batch in range(int(train_sample / batch_size)):
             x, y = build_dataset(tokenizer, batch_size, window_size, corpus) #构建一组训练样本
-            x, y = x.to(device), y.to(device)
             optim.zero_grad()    #梯度归零
             loss = model(x, y)   #计算loss
             loss.backward()      #计算梯度
             optim.step()         #更新权重
             watch_loss.append(loss.item())
         print("=========\n第%d轮平均loss:%f" % (epoch + 1, np.mean(watch_loss)))
-        print(generate_sentence("让他在半年之前，就不能做出", model, device, tokenizer, window_size))
-        print(generate_sentence("李慕站在山路上，深深的呼吸", model, device, tokenizer, window_size))
+        print(generate_sentence("让他在半年之前，就不能做出", model, tokenizer, window_size))
+        print(generate_sentence("李慕站在山路上，深深的呼吸", model, tokenizer, window_size))
     if not save_weight:
         return
     else:
