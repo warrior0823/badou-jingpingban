@@ -1,0 +1,44 @@
+// 导入电影数据
+LOAD CSV WITH HEADERS FROM 'file:///movies.csv' AS row
+CREATE (:Movie {title: row.title, release_year: toInteger(row.release_year)});
+
+// 导入演员数据
+LOAD CSV WITH HEADERS FROM 'file:///actors.csv' AS row
+CREATE (:Actor {name: row.name, birth_year: toInteger(row.birth_year)});
+
+// 导入导演数据
+LOAD CSV WITH HEADERS FROM 'file:///directors.csv' AS row
+CREATE (:Director {name: row.name, birth_year: toInteger(row.birth_year)});
+
+// 导入演员关系数据
+LOAD CSV WITH HEADERS FROM 'file:///acted_in.csv' AS row
+MATCH (a:Actor {name: row.actor_name}), (m:Movie {title: row.movie_title})
+CREATE (a)-[:ACTED_IN]->(m);
+
+// 导入导演关系数据
+LOAD CSV WITH HEADERS FROM 'file:///directed.csv' AS row
+MATCH (d:Director {name: row.director_name}), (m:Movie {title: row.movie_title})
+CREATE (d)-[:DIRECTED]->(m);
+
+
+//创建图谱模型
+CREATE CONSTRAINT ON (m:Movie) ASSERT m.title IS UNIQUE;
+CREATE CONSTRAINT ON (a:Actor) ASSERT a.name IS UNIQUE;
+CREATE CONSTRAINT ON (d:Director) ASSERT d.name IS UNIQUE;
+
+//查找某个演员出演的所有电影
+MATCH (a:Actor {name: 'Tom Hanks'})-[:ACTED_IN]->(m:Movie)
+RETURN m.title AS Movie, m.release_year AS ReleaseYear;
+
+//查找某个导演导演的所有电影
+MATCH (d:Director {name: 'Steven Spielberg'})-[:DIRECTED]->(m:Movie)
+RETURN m.title AS Movie, m.release_year AS ReleaseYear;
+
+//查找某个电影的所有演员
+MATCH (m:Movie {title: 'Forrest Gump'})<-[:ACTED_IN
+
+
+//查找某个电影的导演
+MATCH (m:Movie {title: 'Jurassic Park'})<-[:DIRECTED]-(d:Director)
+RETURN d.name AS Director;
+
