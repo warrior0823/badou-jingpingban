@@ -1,0 +1,34 @@
+判断用户输入 user_query 是否为空
+三次以内请再试一次，三次输入为空请重新输入
+
+输入:
+请再说一遍！
+:
+请再说一遍！
+:买衣服
+您想买长袖、短袖还是半截袖
+{'avaliable_nodes': ['scenario-买衣服_node1'], 'user_query': '买衣服', 'hit_node_id': 'scenario-买衣服_node1', 'hit_score': 0.6, 'missing_slot': '#服装类型#', 'policy': 'ask', 'avaliablie_nodes': ['scenario-买衣服_node1'], 'response': '您想买长袖、短袖还是半截袖'}
+================
+输入:
+请再说一遍！
+:
+请再说一遍！
+:
+请再说一遍！
+:
+对不起，您输入的太少了，请重新输入！
+:短袖
+您喜欢什么颜色
+{'avaliable_nodes': ['scenario-买衣服_node1'], 'user_query': '短袖', 'hit_node_id': 'scenario-买衣服_node1', 'hit_score': 0.0, 'missing_slot': '#服装颜色#', 'policy': 'ask', 'avaliablie_nodes': ['scenario-买衣服_node1'], 'response': '您喜欢什么颜色', '#服装类型#': '短袖'}
+================
+输入:黄色
+您想要多尺寸
+{'avaliable_nodes': ['scenario-买衣服_node1'], 'user_query': '黄色', 'hit_node_id': 'scenario-买衣服_node1', 'hit_score': 0.0, 'missing_slot': '#服装尺寸#', 'policy': 'ask', 'avaliablie_nodes': ['scenario-买衣服_node1'], 'response': '您想要多尺寸', '#服装类型#': '短袖', '#服装颜色#': '黄'}
+================
+输入:
+请再说一遍！
+:xl
+为您推荐这一款，xl号，黄色短袖，产品连接：xxx
+{'avaliable_nodes': ['scenario-买衣服_node1'], 'user_query': 'xl', 'hit_node_id': 'scenario-买衣服_node1', 'hit_score': 0.0, 'missing_slot': None, 'policy': 'answer', 'avaliablie_nodes': ['scenario-买衣服_node2', 'scenario-买衣服_node3', 'scenario-买衣服_node4'], 'response': '为您推荐这一款，xl号，黄色短袖，产品连接：xxx', '#服装类型#': '短袖', '#服装颜色#': '黄', '#服装尺寸#': 'xl', 'database_name': 'database.json'}
+================
+
